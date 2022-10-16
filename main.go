@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -20,6 +19,7 @@ func NewRootCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringVar(&Config.ConfigFile, "config", "", "Config file (default: ~/.config/bankparse/config.toml)")
 
 	cmd.AddCommand(NewParseCmd())
@@ -28,7 +28,6 @@ func NewRootCmd() *cobra.Command {
 
 func main() {
 	if err := NewRootCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
