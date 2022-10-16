@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -13,16 +14,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Row represents the parsed transaction data. This is the common
+// representation that different parsers will output. It is also modelled after
+// YNAB's import format. The ubiquity of YNAB means that this format should
+// also be supported by the majority of other budgeting tools.
 type Row struct {
 	Date   time.Time
 	Payee  string
 	Memo   string
-	Amount float64
+	Amount float64 // Negative if outflow; positive if inflow
 }
 
-type DBSDebitFormat string
+// Parser describes the interface that parsers should implement. A parser takes
+// an io.Reader as input and returns a slice of Row structs.
+type Parser interface {
+	Parse(reader io.Reader) ([]Row, error)
+}
 
-func (f DBSDebitFormat) parseRow(record []string, loc *time.Location) (Row, error) {
+// DBSDebitFormatParser parses the exported DBS CSV file.
+type DBSDebitFormatParser struct{}
+
+// DBSRawTableFormatParser parses a HTML table copied to clipboard. This will
+// typically be similar to a tab-separated CSV. This is used for credit card
+// statements, which DBS does not provide a proper CSV export for.
+type DBSRawTableFormatParser struct{}
+
+func (f DBSDebitFormatParser) parseRow(record []string, loc *time.Location) (Row, error) {
 	// Headers: Transaction Date,Reference,Debit Amount,Credit Amount,Transaction Ref1,Transaction Ref2,Transaction Ref3
 	rawDate := strings.TrimSpace(record[0])
 	debitAmount := strings.TrimSpace(record[2])
@@ -75,8 +92,32 @@ func (f DBSDebitFormat) parseRow(record []string, loc *time.Location) (Row, erro
 	return row, nil
 }
 
-func (f DBSDebitFormat) Parse() ([]Row, error) {
-	r := csv.NewReader(strings.NewReader(string(f)))
+func (f DBSDebitFormatParser) Parse(reader io.Reader) ([]Row, error) {
+	var csvContents string
+	var csvHeaderSeen bool
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Transaction Date,") {
+			csvHeaderSeen = true
+			csvContents += line + "\n"
+		} else if csvHeaderSeen && line != "" {
+			// DBS appends an empty value to each record. Header
+			// has 7 elements, record has 8 elements. Remove the
+			// extra element from each record.
+			if line[len(line)-1] == ',' {
+				line = line[:len(line)-1]
+			}
+			csvContents += line + "\n"
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	csvContents = strings.TrimSpace(csvContents)
+
+	r := csv.NewReader(strings.NewReader(string(csvContents)))
 	records, err := r.ReadAll()
 	if err != nil {
 		return nil, errors.Wrap(err, "read csv contents")
@@ -101,6 +142,10 @@ func (f DBSDebitFormat) Parse() ([]Row, error) {
 	return rows, nil
 }
 
+func (f DBSRawTableFormatParser) Parse(reader io.Reader) ([]Row, error) {
+	return nil, nil
+}
+
 func NewParseCmd() *cobra.Command {
 	parseCmd := &cobra.Command{
 		Use:   "parse",
@@ -112,7 +157,7 @@ func NewParseCmd() *cobra.Command {
 		Use:   "dbs-csv <file>",
 		Short: "DBS transaction history exported as CSV",
 		Long:  `DBS debit card transaction history can be exported as CSV.`,
-		RunE:  parseDBSDebitFormat,
+		RunE:  parse(DBSDebitFormatParser{}),
 		Args:  cobra.ExactArgs(1),
 	}
 
@@ -123,7 +168,7 @@ func NewParseCmd() *cobra.Command {
 		download as a CSV. The only way to export it is by copying the
 		contents of the HTML table. This command supports parsing the
 		copied contents.`,
-		RunE: parseDBSRawTableFormat,
+		RunE: parse(DBSRawTableFormatParser{}),
 		Args: cobra.ExactArgs(1),
 	}
 
@@ -132,49 +177,22 @@ func NewParseCmd() *cobra.Command {
 	return parseCmd
 }
 
-func parseDBSDebitFormat(cmd *cobra.Command, args []string) error {
-	f, err := os.Open(args[0])
-	if err != nil {
-		return errors.Wrap(err, "open file")
-	}
-	defer f.Close()
-
-	var csvContents string
-	var csvHeaderSeen bool
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "Transaction Date,") {
-			csvHeaderSeen = true
-			csvContents += line + "\n"
-		} else if csvHeaderSeen && line != "" {
-			// DBS appends an empty value to each record. Header
-			// has 7 elements, record has 8 elements. Remove the
-			// extra element from each record.
-			if line[len(line)-1] == ',' {
-				line = line[:len(line)-1]
-			}
-			csvContents += line + "\n"
+func parse(parser Parser) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		f, err := os.Open(args[0])
+		if err != nil {
+			return errors.Wrap(err, "open file")
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-	csvContents = strings.TrimSpace(csvContents)
+		defer f.Close()
 
-	dbsDebitFormat := DBSDebitFormat(csvContents)
-	rows, err := dbsDebitFormat.Parse()
-	if err != nil {
-		return errors.Wrap(err, "parse DBS debit format")
-	}
-	for _, v := range rows {
-		fmt.Println(v)
-	}
+		rows, err := parser.Parse(f)
+		if err != nil {
+			return errors.Wrap(err, "parse DBS debit format")
+		}
+		for _, v := range rows {
+			fmt.Println(v)
+		}
 
-	return nil
-}
-
-func parseDBSRawTableFormat(cmd *cobra.Command, args []string) error {
-	return nil
+		return nil
+	}
 }
