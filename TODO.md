@@ -18,3 +18,6 @@
 - How to handle cash transactions? Maybe we can just mark ATM withdrawals as
   such, and ignore them in our budgeting since we don't use cash enough for it
   to matter.
+- Do we need to support visualizations? Such as showing aggregations and
+  summaries. Might be easier to just defer that functionality to Google Sheets
+  or VisiData.
