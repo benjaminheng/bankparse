@@ -1,17 +1,10 @@
 ## TODO
 
-- [ ] Support `--config` flag
-- [ ] Add `init` command. Write config to `$XDG_CONFIG_HOME/bankparse/config.toml` or `$HOME/.config/bankparse/config.toml`
-- [ ] Implement parser for DBS csv format
+- [x] Implement parser for DBS csv format
 - [ ] Implement parser for DBS raw table format
-- [ ] Write parsed output to csv file. Add idempotency.
-- [ ] Implement categorization logic as new `categorize` command.
-    - [ ] Add `categorization_attempted` column so we can identify and
-      reconcile the transactions that couldn't be categorized.
-    - [ ] Add `--rerun` flag to rerun categorization logic on already
-      categorized columns. We can use this flag after updating rules to cover
-      previously uncovered transactions.
-- [ ] Add `--categorize` flag to `parse` command. Invoke categorization logic when enabled.
+- [x] Write parsed output to stdout in csv format
+- [ ] Add `parse -i` flag for interactive input, will probably be used for the
+  DBS raw table format.
 
 ## Open questions
 
@@ -21,3 +14,6 @@
 - Do we need to support visualizations? Such as showing aggregations and
   summaries. Might be easier to just defer that functionality to Google Sheets
   or VisiData.
+- Should we handle automatic categorizations? Right now I'm leaning towards no.
+  I'll probably be using ActualBudget for my budgeting, and I just need
+  something to format DBS transactions into a usable CSV format.
