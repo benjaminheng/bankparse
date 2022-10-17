@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -189,9 +188,14 @@ func parse(parser Parser) func(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return errors.Wrap(err, "parse DBS debit format")
 		}
+
+		w := csv.NewWriter(os.Stdout)
+		w.Write([]string{"date", "payee", "memo", "amount"})
 		for _, v := range rows {
-			fmt.Println(v)
+			record := []string{v.Date.Format("2006-01-02"), v.Payee, v.Memo, strconv.FormatFloat(v.Amount, 'f', 2, 64)}
+			w.Write(record)
 		}
+		w.Flush()
 
 		return nil
 	}
