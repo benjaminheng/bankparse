@@ -11,16 +11,8 @@ func NewRootCmd() *cobra.Command {
 		Use:   "bankparse",
 		Short: "",
 		Long:  ``,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			err := Config.Load(Config.ConfigFile)
-			if err != nil {
-				return err
-			}
-			return nil
-		},
 	}
 	cmd.SilenceUsage = true
-	cmd.PersistentFlags().StringVar(&Config.ConfigFile, "config", "", "Config file (default: ~/.config/bankparse/config.toml)")
 
 	cmd.AddCommand(NewParseCmd())
 	return cmd

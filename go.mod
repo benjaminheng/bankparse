@@ -3,7 +3,6 @@ module github.com/benjaminheng/bankparse
 go 1.19
 
 require (
-	github.com/BurntSushi/toml v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.0
 )
