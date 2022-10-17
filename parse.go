@@ -69,7 +69,7 @@ func parse(parser Parser) func(cmd *cobra.Command, args []string) error {
 
 		rows, err := parser.Parse(f)
 		if err != nil {
-			return errors.Wrap(err, "parse DBS debit format")
+			return errors.Wrap(err, "parse file")
 		}
 
 		w := csv.NewWriter(os.Stdout)
