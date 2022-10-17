@@ -41,7 +41,7 @@ func (f DBSRawTableParser) parseRow(record []string, loc *time.Location) (Row, e
 	row := Row{
 		Date:   date,
 		Payee:  payee,
-		Amount: -amount,
+		Amount: amount,
 	}
 	return row, nil
 }
