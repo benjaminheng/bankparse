@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +58,17 @@ func (f DBSCSVParser) parseRow(record []string, loc *time.Location) (Row, error)
 		amount = credit
 	} else {
 		return Row{}, errors.New("neither debit nor credit amount set")
+	}
+
+	// Normalize payee. DBS adds a suffix to the payee name for debit card
+	// transactions that make it annoying to use. The suffix looks like:
+	// `SI NG 01JAN`. We'll strip the suffix from the payee. We'll keep the
+	// suffix by moving it to the memo to help with idempotency.
+	suffixRegex := regexp.MustCompile("(.+?) (.{2} .{2} [0-9]{2}(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC))$")
+	matches := suffixRegex.FindStringSubmatch(payee)
+	if len(matches) == 3 {
+		payee = strings.TrimSpace(matches[1])
+		memo = fmt.Sprintf("[%s] %s", matches[2], memo)
 	}
 
 	row := Row{
