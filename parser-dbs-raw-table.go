@@ -10,12 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DBSRawTableParser parses a HTML table copied to clipboard. This will
-// typically be similar to a TSV file. This parser can be used for credit card
-// statements, which DBS does not provide a proper CSV export for.
-type DBSRawTableParser struct{}
+// DBSCreditCardTransactionsParser parses a HTML table copied to clipboard.
+// This will typically be similar to a TSV file. This parser can be used for
+// credit card statements, which DBS does not provide a proper CSV export for.
+type DBSCreditCardTransactionsParser struct{}
 
-func (f DBSRawTableParser) parseRow(record []string, loc *time.Location) (Row, error) {
+func (f DBSCreditCardTransactionsParser) parseRow(record []string, loc *time.Location) (Row, error) {
 	rawDate := strings.TrimSpace(record[0])
 	payee := strings.TrimSpace(record[1])
 	rawAmount := strings.TrimSpace(record[2])
@@ -46,7 +46,7 @@ func (f DBSRawTableParser) parseRow(record []string, loc *time.Location) (Row, e
 	return row, nil
 }
 
-func (f DBSRawTableParser) Parse(reader io.Reader) ([]Row, error) {
+func (f DBSCreditCardTransactionsParser) Parse(reader io.Reader) ([]Row, error) {
 	r := csv.NewReader(reader)
 	r.Comma = '\t'
 	records, err := r.ReadAll()

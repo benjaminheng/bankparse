@@ -44,13 +44,13 @@ func NewParseCmd() *cobra.Command {
 	}
 
 	parseDBSRawTableCmd := &cobra.Command{
-		Use:   "dbs-raw-table <file>",
-		Short: "DBS transaction history manually copied to the clipboard",
+		Use:   "dbs-credit-card-transactions <file>",
+		Short: "DBS credit card transaction history manually copied from the website to the clipboard",
 		Long: `DBS credit card statements aren't available for
 		download as a CSV. The only way to export it is by copying the
 		contents of the HTML table. This command supports parsing the
 		copied contents.`,
-		RunE: parse(DBSRawTableParser{}),
+		RunE: parse(DBSCreditCardTransactionsParser{}),
 		Args: cobra.ExactArgs(1),
 	}
 
